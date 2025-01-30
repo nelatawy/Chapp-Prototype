@@ -69,8 +69,31 @@ int main(){
     else {
         cout << "Accepted Socket Created --> Connection_Estabilished" << endl;
     }
-    char temp;
-    cin >> temp;
+
+    char buffer_send[250],buffer_recv[250];
+    
+    while(1){
+        // Sleep(10);
+    
+        if (recv(accept_socket,buffer_recv,250,0) < 0)
+        {
+            cout << "Error Receiving the message from server" << WSAGetLastError() << endl;
+        }
+        else {
+            cout << "Client Sends " << buffer_recv << endl;
+        }
+
+        cout << "Enter The Message You Want To Send" << endl;
+        cin.getline(buffer_send,250);
+        if (send(accept_socket,buffer_send,250,0) < 0){
+            cout << "Error sending the message to Client" << WSAGetLastError() << endl;
+        }
+        else {
+            cout << "Message Sent" << endl;
+        }
+        
+    }
     closesocket(server_socket);
+    system("pause");
     WSACleanup();
 }

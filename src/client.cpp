@@ -47,9 +47,29 @@ int main(){
     else {
         cout << "Successfully Connected to Server Whose IP : 127.0.0.1" << endl;
     }
+
+    char buffer_send[250],buffer_recv[250];
     
-    char temp;
-    cin >> temp;
+    while(1){
+        cout << "Enter The Message You Want To Send" << endl;
+        cin.getline(buffer_send,250);
+        if (send(client_socket,buffer_send,250,0) < 0){
+            cout << "Error sending the message to server" << WSAGetLastError() << endl;
+        }
+        else {
+            cout << "Message Sent" << endl;
+        }
+
+        if (recv(client_socket,buffer_recv,250,0) < 0)
+        {
+            cout << "Error Receiving the message from server" << WSAGetLastError() << endl;
+        }
+        else {
+            cout << "Server Sends " << buffer_recv << endl;
+        }
+        
+    }
     closesocket(client_socket);
+    system("pause");
     WSACleanup();
 }
