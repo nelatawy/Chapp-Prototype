@@ -1,75 +1,150 @@
 #include "../include/stdafx.h"
+#include "../include/fnctns.h"
+#include "../include/constants.h"
 
-using namespace std;
+#define AUTH_SERVER_PORT 55555
+#define MSG_SERVER_PORT 9090
+#define SERVER_IP "127.0.0.1"  // Server IP address on local machine
+#define AUTH_ACCEPT 1
 
 
-int main(){
-    //setting up the dll
-    WSADATA wsaData ;
-    WORD wVersionRequested = MAKEWORD(2,2);
-    int wsaerr = WSAStartup(wVersionRequested,&wsaData);
-    if (wsaerr == 0)
-    {
-        cout << "Ws2_32 DLL Found" << endl ;
-    }
-    else {
-        cout << "DLL NOT FOUND" << endl;
-        exit(0);
-    }
-    //creating socket
-    cout << "--------------STEP 1--------------" << endl ;
-    int client_socket = INVALID_SOCKET;
-    client_socket = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-    if (client_socket == INVALID_SOCKET)
-    {
-        cout << "Error Creating Client Socket" << WSAGetLastError() << endl ;
-        WSACleanup();
-        exit(0);
-    }
-    else {
-        cout << "Client Socket Created Successfully" << endl;
-    }
-    //connecting to server
-    cout << "--------------STEP 2--------------" << endl ;
-    sockaddr_in server_addr;
-    server_addr.sin_family = AF_INET ;
-    server_addr.sin_port = htons(55555);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    if (connect(client_socket,(sockaddr*)&server_addr,sizeof(server_addr)) == SOCKET_ERROR)
-    {
 
-        cout << "Failed to Connect ErrCode: " << WSAGetLastError() << endl;
-        closesocket(client_socket);
-        WSACleanup();
-        exit(0);
-    }
-    else {
-        cout << "Successfully Connected to Server Whose IP : 127.0.0.1" << endl;
-    }
+typedef
+struct auth_req{
+    uint32_t op_code;
+    char username[MAX_CRED_SIZE];
+    char password[MAX_CRED_SIZE];
 
-    char buffer_send[250],buffer_recv[250];
+}auth_req;
+
+
+int send_auth_creds(SOCKET socket, sockaddr_in server_addr) {
+
+    // ensure_connection(auth_sock,auth_server_addr);
+    auth_req request;
     
+    cout << "Enter your Username: ";
+    cin.getline(request.username,MAX_CRED_SIZE);
+
+    cout << "Enter your password: ";
+    cin.getline(request.password,MAX_CRED_SIZE);
+
+    request.op_code = LOGIN_REQ;
+
+    if (send(socket, (const char*)&request, sizeof(request), 0) == SOCKET_ERROR) {
+        if(ensure_connection(socket,server_addr,"") == SRVR_DISCNT) return SRVR_DISCNT;
+        return false;
+    }
+    return true;
+}
+
+
+int recv_auth_approval(SOCKET socket, sockaddr_in server_addr){
+
+    char confirmation_flag[MAX_BUFFER_SIZE];
+    if (recv(socket,(char*)confirmation_flag,sizeof(confirmation_flag),0)  == SOCKET_ERROR){
+        cerr << "Server Disconnected" << endl;
+        if(ensure_connection(socket, server_addr, "<auth server>") == SRVR_DISCNT){
+            return SRVR_DISCNT;
+        }
+        cout << "Server Reconnected ...Please Try Again";
+        return 0;
+    }
+    else if(strcmp("accepted",confirmation_flag) == 0){
+        cout << "user found\n";
+        return 1;
+    }
+    else{
+        cout << "Your Credentials Are Incorrect.. Please Try Again" << endl;
+        return 0;
+    }
+}
+
+
+int launch_auth_protocol(SOCKET& auth_socket, sockaddr_in server_addr){ //true if authenticated
+
+    if(ensure_connection(auth_socket, server_addr, "<auth server>") == SRVR_DISCNT) 
+        return SRVR_DISCNT; //will only proceed if connection is established
+    
+    int connecion_flag;
     while(1){
-        cout << "Enter The Message You Want To Send" << endl;
-        cin.getline(buffer_send,250);
-        if (send(client_socket,buffer_send,250,0) < 0){
+        if (send_auth_creds(auth_socket,server_addr))
+        {
+            cout << "Creds Sent\n";
+            if(recv_auth_approval(auth_socket,server_addr)){ // authenticated successfully
+                cout << "Auth approval recieved" << endl;
+                break;
+            }
+        }
+        cerr << "error sending credentials ...please try again";
+    }
+    return 1;
+}
+
+int main() {
+    //STEP 1
+    initialize_winsock();
+    cout << "Initialized Winsock Services\n";
+
+
+    //STEP 2
+    SOCKET client_msg_sock = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+    SOCKET auth_sock = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+
+    sockaddr_in auth_server_addr;
+    sockaddr_in msg_server_addr;
+    set_addr(&msg_server_addr,MSG_SERVER_PORT,SERVER_IP);
+    set_addr(&auth_server_addr,AUTH_SERVER_PORT,SERVER_IP);
+    cout << "sockets and addresses set\n";
+
+    //STEP 3
+    if(launch_auth_protocol(auth_sock,auth_server_addr) == SRVR_DISCNT){
+        cerr << "server disconnected \n and program will now terminate\n";
+        terminate_and_close_this_socket(auth_sock);
+    }
+    closesocket(auth_sock);
+
+
+    cout << "Authentication Approved\n";
+
+
+    //STEP 4
+    if(ensure_connection(client_msg_sock,msg_server_addr,"Message Server") == SRVR_DISCNT){
+    //NOTE : ensure connection in fnctns.h tries to connect/reconnect to server and gives SRVR_DISCNT on faiure 5 times
+        terminate_and_close_this_socket(client_msg_sock);
+    }
+    cout << "Connected To Message Server\n";
+
+
+    //STEP 5
+    thread read_thread(chk_wrt_msgs,client_msg_sock); //chk_wrt_msg it keeps checking for new messages in fnctns.h
+
+    char buffer_send[MAX_BUFFER_SIZE];
+
+    while(1){
+        message msg;
+        cout << "Enter The Username For The Intended-Reciever\n";
+        msg.type = MSG_PRIVATE;
+        // cin.getline(msg.receiver,MAX_CRED_SIZE);
+        cin >> msg.receiver ;
+        cout << "Enter The Message\n";
+        cin.getline(msg.content,MAX_BUFFER_SIZE);
+        cout << "About to send ==> " << msg.content << endl;
+
+        if (send(client_msg_sock, (char*)&msg, sizeof(message), 0) <=0 ){
             cout << "Error sending the message to server" << WSAGetLastError() << endl;
         }
         else {
             cout << "Message Sent" << endl;
-        }
-
-        if (recv(client_socket,buffer_recv,250,0) < 0)
-        {
-            cout << "Error Receiving the message from server" << WSAGetLastError() << endl;
-        }
-        else {
-            cout << "Server Sends " << buffer_recv << endl;
+            cout << "You ==> " << msg.content << endl;
         }
         
     }
-    closesocket(client_socket);
-    system("pause");
-    WSACleanup();
+
+    read_thread.join();
+
+    closesocket(client_msg_sock);
+    cleanup_winsock();
+    return 0;
 }
