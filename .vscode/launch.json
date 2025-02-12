@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/College/Programming 1 Labs/Side Projects/Chapp-Project",
-      "program": "c:/College/Programming 1 Labs/Side Projects/Chapp-Project/build/Debug/outDebug",
+      "cwd": "c:/College/Programming 1 Labs/Side Projects/Chapp-Project - Copy",
+      "program": "c:/College/Programming 1 Labs/Side Projects/Chapp-Project - Copy/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

@@ -6,12 +6,11 @@
         "type": "shell",
         "command": "g++",
         "args": [
-            "-o", "socket_prgrm.exe", // Output executable
+            "-o", "server.exe", // Output executable
             "-std=c++17",              // Use the C++17 standard
             "-I./include",             // Include headers (if any)
-            "src/client.cpp",       
-            "src/stdafx.cpp",        // Source files
-            "-lWs2_32" 
+            "src/server.cpp",               // Source file to build
+            "-lWs2_32"                  //to link winsock
         ],
         "group": {
           "kind": "build",
