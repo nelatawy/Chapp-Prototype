@@ -33,7 +33,7 @@ void rcv_frwrd_msg(SOCKET client_socket , char* username)  {
         cout << "[MSG] " << ": " << msg.content << endl;
         cout << "\n msg receiver : " << msg.receiver << endl;
 
-        strcpy(msg.sender , username);
+        strcpy(msg.sender , temp_username);
         if(send(client_list[msg.receiver],(char*)&msg,sizeof(msg),0)<0){
             cout << "forwarding err\n";
         }

@@ -77,7 +77,7 @@ int launch_auth_protocol(SOCKET& auth_socket, sockaddr_in server_addr){ //true i
                 break;
             }
         }
-        cerr << "error sending credentials ...please try again";
+        cerr << "error sending credentials ...please try again\n";
     }
     return 1;
 }
