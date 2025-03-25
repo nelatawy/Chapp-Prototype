@@ -1,0 +1,21 @@
+#pragma once
+#define _WIN32_WINNT 0x0A00 // Target Windows 10/11
+
+// Windows header files
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+
+// IO headers
+#include <stdio.h>
+#include <iostream>
+#include <thread>
+
+// Standard C++ headers
+#include <string>
+#include <vector>
+#include <map>
+#include <atomic>
+
+// Ensure linking against Ws2_32.lib
+#pragma comment(lib, "Ws2_32.lib")
