@@ -11,10 +11,14 @@
 //IO headers
 #include <stdio.h>
 #include <iostream>
+#include <thread>
 
 // Standard C++ headers
 #include <string>
 #include <vector>
 
+
+#include <map>
+#include <atomic>
 // Ensure you link against Ws2_32.lib
 #pragma comment(lib, "Ws2_32.lib")
